@@ -30,6 +30,20 @@ medianHist <- median(aggregatedData$totalSteps)
 
 # What is the average daily activity pattern?
 
-# Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
 
-# Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+# Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) 
+# and the average number of steps taken, averaged across all days (y-axis)
+
+aggregateByInterval <- aggregate(filteredData$steps,
+                            by=list(interval=filteredData$interval),
+                            FUN=mean)
+names(aggregateByInterval) <- c("interval", "averageSteps")
+
+plot(aggregateByInterval, type = "l", xlab = "Interval", ylab="Average steps",
+     main= "Average steps per daily intervals", xaxp  = c(0, 2400, 24), col = "blue")
+
+# Which 5-minute interval, on average across all the days in the dataset, 
+# contains the maximum number of steps?
+maxNumSteps <- aggregateByInterval[which.max(aggregateByInterval$averageSteps),]
+
+
