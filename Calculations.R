@@ -7,9 +7,8 @@ library(dplyr)
 library(lattice)
 
 
-file <- read.csv(file = "activity.csv")
-View(file)
-file$date <- ymd(file$date)
+originalData <- read.csv(file = "activity.csv")
+originalData$date <- ymd(originalData$date)
 
 
 ############# What is mean total number of steps taken per day? ################
@@ -29,23 +28,28 @@ file$date <- ymd(file$date)
 ################################################################################
 
 
-totalSteps <- sum(file$steps, na.rm = TRUE)
+totalSteps <- sum(originalData$steps, na.rm = TRUE)
 
-nonNaData <- file[!is.na(file$steps),]
+nonNaData <- originalData[!is.na(originalData$steps),]
 
 aggregatedData <- aggregate(nonNaData$steps,
                             by=list(date=nonNaData$date),
                             FUN=sum)
 names(aggregatedData) <- c("date", "totalSteps")
 
+
+
+png("figures/Plot1.png", width = 480, height = 480)
+
 hist(aggregatedData$totalSteps, breaks = 20, xlab = "sum of steps", 
      main = "Frequency of steps taken", col = "#009E73")
 
 text(15000, 8, paste("Mean    =", 
-                      round(mean(aggregatedData$totalSteps), 4), 
-                      "\nMedian =", 
-                      round(median(aggregatedData$totalSteps), 4)), 
+                     round(mean(aggregatedData$totalSteps), 4), 
+                     "\nMedian =", 
+                     round(median(aggregatedData$totalSteps), 4)), 
      pos = 4) # left aligned
+dev.off()
 
 
 
@@ -56,13 +60,16 @@ text(15000, 8, paste("Mean    =",
 # and the average number of steps taken, averaged across all days (y-axis)
 
 aggregateByInterval <- aggregate(nonNaData$steps,
-                            by=list(interval=nonNaData$interval),
-                            FUN=mean)
+                                 by=list(interval=nonNaData$interval),
+                                 FUN=mean)
 names(aggregateByInterval) <- c("interval", "averageSteps")
+
+
+png("figures/Plot2.png", width = 480, height = 480)
 
 plot(aggregateByInterval, type = "l", xlab = "Interval", ylab="Average steps",
      main= "Average steps per daily intervals", xaxp  = c(0, 2400, 24), col = "blue")
-
+dev.off()
 # Which 5-minute interval, on average across all the days in the dataset, 
 # contains the maximum number of steps?
 maxNumSteps <- aggregateByInterval[which.max(aggregateByInterval$averageSteps),]
@@ -93,7 +100,7 @@ maxNumSteps <- aggregateByInterval[which.max(aggregateByInterval$averageSteps),]
 ################################################################################
 
 
-totalMissingRows <- sum(is.na(file$steps))
+totalMissingRows <- sum(is.na(originalData$steps))
 
 # There's a total of 2304 rows that have NA instead of the number of steps.
 # It wouldn't be good to simply substitute with zeros since this can skew
@@ -103,7 +110,7 @@ totalMissingRows <- sum(is.na(file$steps))
 # rows with missing values, substitute these with the average, and join with
 # theose that had values from the beginning.
 
-naRows <- file[is.na(file$steps),]
+naRows <- originalData[is.na(originalData$steps),]
 
 joined <- left_join(naRows, aggregateByInterval, by = "interval")
 
@@ -113,7 +120,6 @@ names(naRowsModified)[1] <- "steps"
 
 # create a new data set where there are no NA values by binding both tables together
 originalDataNoNa <- bind_rows(naRowsModified, nonNaData)
-hist(originalDataNoNa$steps, breaks = 20)
 
 aggregateFilledInData <- aggregate(originalDataNoNa$steps,
                                    by=list(date=originalDataNoNa$date),
@@ -121,14 +127,15 @@ aggregateFilledInData <- aggregate(originalDataNoNa$steps,
 
 names(aggregateFilledInData) <- c("date", "totalSteps")
 
-
+plot("figures/Plot3.png", width=480, height=480)
 hist(aggregateFilledInData$totalSteps, breaks = 20, xlab = "sum of steps", 
      main = "Frequency of steps taken", col = "#E69F00")
-text(15000, 15, paste("Mean    =", 
+text(12000, 15, paste("Mean    =", 
                       round(mean(aggregateFilledInData$totalSteps), 4), 
                       "\nMedian =", 
-                     round(median(aggregateFilledInData$totalSteps), 4)), 
+                      round(median(aggregateFilledInData$totalSteps), 4)), 
      pos = 4) # left aligned
+dev.off()
 
 ### Are there differences in activity patterns between weekdays and weekends? ##
 #
@@ -146,9 +153,9 @@ text(15000, 15, paste("Mean    =",
 ################################################################################
 
 dataSetWithWeekDays <- mutate(originalDataNoNa, 
-       dayType = as.factor( ifelse(weekdays(date) %in% c("Saturday", "Sunday"), 
-                                   "Weekend", 
-                                   "Weekday")))
+                              dayType = as.factor( ifelse(weekdays(date) %in% c("Saturday", "Sunday"), 
+                                                          "Weekend", 
+                                                          "Weekday")))
 
 aggregateWithWeekdays <- aggregate(steps~dayType+interval, 
                                    data=dataSetWithWeekDays, 
@@ -156,4 +163,8 @@ aggregateWithWeekdays <- aggregate(steps~dayType+interval,
 
 names(aggregateWithWeekdays) <- c("dayType", "interval", "steps")
 
-xyplot(steps ~ interval | dayType, data = aggregateWithWeekdays, layout=c(1,2), type = "l")
+xyplot(steps ~ interval | dayType, 
+       data = aggregateWithWeekdays, 
+       layout=c(1,2), 
+       type = "l", 
+       ylab = "Number of steps")
